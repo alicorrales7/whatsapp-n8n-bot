@@ -2,29 +2,50 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const express = require('express');
 const axios = require('axios');
+const fs = require('fs');
 
 const app = express();
 app.use(express.json());
 
+// Verifica paths posibles
+const chromiumPaths = [
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/usr/bin/google-chrome'
+];
+
+let browserPath = null;
+for (const path of chromiumPaths) {
+  if (fs.existsSync(path)) {
+    browserPath = path;
+    console.log(`✅ Chromium encontrado en: ${path}`);
+    break;
+  }
+}
+
+if (!browserPath) {
+  console.error('❌ No se encontró Chromium. El bot no podrá iniciar.');
+  process.exit(1);
+}
+
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
+    executablePath: browserPath,
+    headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   }
 });
 
-// Muestra el QR para escanear
 client.on('qr', qr => {
   qrcode.generate(qr, { small: true });
-  console.log('📲 Escanea este QR para conectar WhatsApp');
+  console.log('📲 Escanea este código QR para conectar WhatsApp');
 });
 
-// Confirmación de conexión
 client.on('ready', () => {
   console.log('✅ WhatsApp conectado');
 });
 
-// Al recibir un mensaje
 client.on('message', async msg => {
   const phone = msg.from;
   const text = msg.body;
@@ -39,14 +60,12 @@ client.on('message', async msg => {
       await client.sendMessage(phone, response.data.reply);
     }
   } catch (err) {
-    console.error('❌ Error enviando a n8n:', err.message);
+    console.error('❌ Error comunicando con n8n:', err.message);
   }
 });
 
-// Inicializa el cliente
 client.initialize();
 
-// Mantener el proceso activo (esto evita que Railway apague el contenedor)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🌐 Server listening on port ${PORT}`);
