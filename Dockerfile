@@ -1,9 +1,8 @@
 FROM node:18-slim
 
-# Instala librerías necesarias para Chromium (Puppeteer)
+# Instalamos Chromium y librerías necesarias para Puppeteer
 RUN apt-get update && apt-get install -y \
-    wget \
-    ca-certificates \
+    chromium \
     fonts-liberation \
     libappindicator3-1 \
     libasound2 \
@@ -35,15 +34,20 @@ RUN apt-get update && apt-get install -y \
     libxtst6 \
     lsb-release \
     xdg-utils \
-    --no-install-recommends \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    wget \
+    --no-install-recommends && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
+# Crear carpeta de trabajo
 WORKDIR /app
 
 COPY package*.json ./
 RUN npm install
 
 COPY . .
+
+# Path de Chromium en Debian
+ENV CHROME_BIN=/usr/bin/chromium
 
 CMD ["node", "index.js"]
