@@ -1,46 +1,95 @@
-require('dotenv').config();
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
-const axios = require('axios');
+const qrcodeTerminal = require('qrcode-terminal');
+const QRCode = require('qrcode');
 const express = require('express');
+const axios = require('axios');
+const fs = require('fs');
+
+require('dotenv').config();
 
 const app = express();
 app.use(express.json());
 
+let latestQR = null;
+
+// Detect installed Chromium binary (needed for puppeteer in Railway)
+const chromiumPaths = [
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/usr/bin/google-chrome'
+];
+
+let browserPath = null;
+for (const path of chromiumPaths) {
+  if (fs.existsSync(path)) {
+    browserPath = path;
+    console.log(`✅ Chromium found at: ${path}`);
+    break;
+  }
+}
+
+if (!browserPath) {
+  console.error('❌ Chromium not found. Cannot continue.');
+  process.exit(1);
+}
+
+// Initialize WhatsApp client
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
+    executablePath: browserPath,
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
   }
 });
 
+// Generate QR and expose it via terminal and HTTP
 client.on('qr', qr => {
-  qrcode.generate(qr, { small: true });
-  console.log('[QR] Escanea el código con tu WhatsApp');
+  latestQR = qr;
+  qrcodeTerminal.generate(qr, { small: true });
+  console.log('📲 QR updated. Accessible at /qr');
 });
 
+app.get('/qr', async (req, res) => {
+  if (!latestQR) return res.status(404).send('QR not ready yet');
+  try {
+    const qrImage = await QRCode.toDataURL(latestQR);
+    const img = Buffer.from(qrImage.split(',')[1], 'base64');
+    res.writeHead(200, { 'Content-Type': 'image/png' });
+    res.end(img);
+  } catch (err) {
+    console.error('❌ Error generating QR:', err.message);
+    res.status(500).send('Internal error');
+  }
+});
+
+// WhatsApp ready
 client.on('ready', () => {
-  console.log('[CLIENT] Bot listo');
+  console.log('✅ WhatsApp connected and ready!');
 });
 
+// When receiving a message, forward to n8n webhook
 client.on('message', async msg => {
-  const data = {
-    from: msg.from,
-    body: msg.body,
-    timestamp: msg.timestamp
-  };
+  const phone = msg.from;
+  const text = msg.body;
 
   try {
-    await axios.post(process.env.WEBHOOK_URL, data);
-    console.log('[INFO] Mensaje enviado a n8n');
-  } catch (error) {
-    console.error('[ERROR] No se pudo enviar a n8n:', error.message);
+    const response = await axios.post(process.env.N8N_WEBHOOK, {
+      from: phone,
+      message: text
+    });
+
+    if (response.data?.reply) {
+      await client.sendMessage(phone, response.data.reply);
+    }
+  } catch (err) {
+    console.error('❌ Error contacting n8n:', err.message);
   }
 });
 
 client.initialize();
 
-app.listen(process.env.PORT, () => {
-  console.log(`[SERVER] Corriendo en puerto ${process.env.PORT}`);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🌐 Express server running on port ${PORT}`);
 });
