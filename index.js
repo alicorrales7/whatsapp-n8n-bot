@@ -11,28 +11,15 @@ app.use(express.json());
 
 let latestQR = null;
 
-// Detect installed Chromium binary (needed for puppeteer in Railway)
-const chromiumPaths = [
-  '/usr/bin/chromium',
-  '/usr/bin/chromium-browser',
-  '/usr/bin/google-chrome'
-];
+// ✅ Ruta fija para Google Chrome en macOS (ajusta si usas Windows o Linux)
+const browserPath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 
-let browserPath = null;
-for (const path of chromiumPaths) {
-  if (fs.existsSync(path)) {
-    browserPath = path;
-    console.log(`✅ Chromium found at: ${path}`);
-    break;
-  }
-}
-
-if (!browserPath) {
-  console.error('❌ Chromium not found. Cannot continue.');
+if (!fs.existsSync(browserPath)) {
+  console.error(`❌ Google Chrome not found at: ${browserPath}`);
   process.exit(1);
 }
 
-// Initialize WhatsApp client
+// ✅ Inicializa el cliente de WhatsApp
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
@@ -42,13 +29,14 @@ const client = new Client({
   }
 });
 
-// Show QR in terminal and serve as PNG on endpoint
+// 📲 Generar y mostrar QR
 client.on('qr', qr => {
   latestQR = qr;
   qrcodeTerminal.generate(qr, { small: true });
   console.log('📲 QR updated. Accessible at /qr');
 });
 
+// 🌐 Endpoint para ver el QR en el navegador
 app.get('/qr', async (req, res) => {
   if (!latestQR) return res.status(404).send('QR not ready yet');
   try {
@@ -62,16 +50,15 @@ app.get('/qr', async (req, res) => {
   }
 });
 
+// ✅ WhatsApp listo
 client.on('ready', () => {
   console.log('✅ WhatsApp connected and ready!');
 });
 
-// Forward incoming WhatsApp messages to n8n webhook
+// 📥 Al recibir mensaje, reenviar a n8n
 client.on('message', async msg => {
   const phone = msg.from;
   const text = msg.body;
-
-  console.log(`[${phone}] → ${text}`);
 
   try {
     const response = await axios.post(process.env.N8N_WEBHOOK, {
@@ -80,7 +67,6 @@ client.on('message', async msg => {
     });
 
     if (response.data?.reply) {
-      console.log(`[GPT] ← ${response.data.reply}`);
       await client.sendMessage(phone, response.data.reply);
     }
   } catch (err) {
@@ -88,6 +74,7 @@ client.on('message', async msg => {
   }
 });
 
+// 🚀 Iniciar cliente y servidor Express
 client.initialize();
 
 const PORT = process.env.PORT || 3000;
