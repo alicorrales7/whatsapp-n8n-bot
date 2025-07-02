@@ -14,9 +14,9 @@ let latestQR = null;
 
 // Detect installed Chromium binary (needed for puppeteer in Railway)
 const chromiumPaths = [
+  '/usr/bin/google-chrome-stable',
   '/usr/bin/chromium',
-  '/usr/bin/chromium-browser',
-  '/usr/bin/google-chrome'
+  '/usr/bin/chromium-browser'
 ];
 
 let browserPath = null;
