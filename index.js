@@ -3,6 +3,8 @@ const qrcodeTerminal = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const express = require('express');
 const axios = require('axios');
+const fs = require('fs');
+
 require('dotenv').config();
 
 const app = express();
@@ -10,42 +12,67 @@ app.use(express.json());
 
 let latestQR = null;
 
-// Inicializa el cliente de WhatsApp
+// Detect installed Chromium binary (needed for puppeteer in Railway)
+const chromiumPaths = [
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/usr/bin/google-chrome'
+];
+
+let browserPath = null;
+for (const path of chromiumPaths) {
+  if (fs.existsSync(path)) {
+    browserPath = path;
+    console.log(`✅ Chromium found at: ${path}`);
+    break;
+  }
+}
+
+if (!browserPath) {
+  console.error('❌ Chromium not found. Cannot continue.');
+  process.exit(1);
+}
+
+// Mostrar el webhook que realmente está usando
+console.log('✅ Webhook apuntando a:', process.env.N8N_WEBHOOK);
+
+// Initialize WhatsApp client
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
+    executablePath: browserPath,
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  },
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  }
 });
 
-// Genera el QR y lo muestra en terminal y vía HTTP
+// Generar y mostrar QR
 client.on('qr', qr => {
   latestQR = qr;
   qrcodeTerminal.generate(qr, { small: true });
   console.log('📲 Escanea este QR para vincular WhatsApp. También está disponible en /qr');
 });
 
-// Endpoint para ver el QR desde el navegador
+// Endpoint para mostrar QR en navegador
 app.get('/qr', async (req, res) => {
-  if (!latestQR) return res.status(404).send('QR no disponible aún');
+  if (!latestQR) return res.status(404).send('QR no generado aún');
   try {
     const qrImage = await QRCode.toDataURL(latestQR);
     const img = Buffer.from(qrImage.split(',')[1], 'base64');
     res.writeHead(200, { 'Content-Type': 'image/png' });
     res.end(img);
   } catch (err) {
-    console.error('❌ Error generando el QR:', err.message);
+    console.error('❌ Error generando QR:', err.message);
     res.status(500).send('Error interno');
   }
 });
 
-// Evento cuando WhatsApp está listo
+// WhatsApp listo
 client.on('ready', () => {
   console.log('✅ WhatsApp conectado y listo para usar');
 });
 
-// Al recibir mensaje, lo reenvía al webhook de n8n
+// Al recibir mensaje, reenviarlo a n8n
 client.on('message', async msg => {
   const phone = msg.from;
   const text = msg.body;
@@ -53,7 +80,7 @@ client.on('message', async msg => {
   try {
     const response = await axios.post(process.env.N8N_WEBHOOK, {
       from: phone,
-      message: text,
+      message: text
     });
 
     if (response.data?.reply) {
