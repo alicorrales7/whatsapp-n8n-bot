@@ -1,3 +1,4 @@
 node_modules
 .env
-.git
+.session
+.wwebjs_auth

@@ -4,6 +4,7 @@ const QRCode = require('qrcode');
 const express = require('express');
 const axios = require('axios');
 const fs = require('fs');
+
 require('dotenv').config();
 
 const app = express();
@@ -11,7 +12,7 @@ app.use(express.json());
 
 let latestQR = null;
 
-// Detectar ruta válida de Chromium
+// Detectar ruta de Chromium
 const chromiumPaths = [
   '/usr/bin/chromium',
   '/usr/bin/chromium-browser',
@@ -28,16 +29,18 @@ for (const path of chromiumPaths) {
 }
 
 if (!browserPath) {
-  console.error('❌ Chromium not found. Cannot continue.');
+  console.error('❌ Chromium no encontrado.');
   process.exit(1);
 }
 
-// Mostrar qué webhook está en uso
+// Mostrar a qué webhook apunta
 console.log('✅ Webhook apuntando a:', process.env.N8N_WEBHOOK);
 
-// Inicializar cliente de WhatsApp con ruta válida
+// Crear cliente WhatsApp
 const client = new Client({
-  authStrategy: new LocalAuth({ dataPath: './session' }), // ⬅️ cambio aquí
+  authStrategy: new LocalAuth({
+    dataPath: '/app/.wwebjs_auth',
+  }),
   puppeteer: {
     executablePath: browserPath,
     headless: true,
@@ -45,14 +48,14 @@ const client = new Client({
   }
 });
 
-// Generar y mostrar el QR
+// Generar y mostrar QR
 client.on('qr', qr => {
   latestQR = qr;
   qrcodeTerminal.generate(qr, { small: true });
   console.log('📲 Escanea este QR para vincular WhatsApp. También disponible en /qr');
 });
 
-// Endpoint para ver QR en navegador
+// Endpoint para mostrar QR como imagen
 app.get('/qr', async (req, res) => {
   if (!latestQR) return res.status(404).send('QR no generado aún');
   try {
@@ -66,12 +69,12 @@ app.get('/qr', async (req, res) => {
   }
 });
 
-// Evento cuando WhatsApp está listo
+// WhatsApp listo
 client.on('ready', () => {
   console.log('✅ WhatsApp conectado y listo para usar');
 });
 
-// Enviar mensaje recibido a n8n
+// Reenviar mensaje a n8n
 client.on('message', async msg => {
   const phone = msg.from;
   const text = msg.body;
