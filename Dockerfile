@@ -1,16 +1,19 @@
-# Imagen base con Chromium preinstalado
-FROM zenika/node:18-bullseye
+FROM ghcr.io/puppeteer/puppeteer:latest
 
-# Crear carpeta de trabajo
+# Crea directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos
+# Copia archivos al contenedor
 COPY package*.json ./
+
+# Instala dependencias
 RUN npm install
+
+# Copia el resto del código
 COPY . .
 
-# Puerto expuesto
+# Expone el puerto
 EXPOSE 3000
 
-# Ejecutar app
-CMD ["node", "index.js"]
+# Comando de inicio
+CMD ["npm", "run", "start"]
