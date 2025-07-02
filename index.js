@@ -4,7 +4,6 @@ const QRCode = require('qrcode');
 const express = require('express');
 const axios = require('axios');
 const fs = require('fs');
-
 require('dotenv').config();
 
 const app = express();
@@ -43,7 +42,7 @@ const client = new Client({
   }
 });
 
-// Generate QR and expose it via terminal and HTTP
+// Show QR in terminal and serve as PNG on endpoint
 client.on('qr', qr => {
   latestQR = qr;
   qrcodeTerminal.generate(qr, { small: true });
@@ -63,15 +62,16 @@ app.get('/qr', async (req, res) => {
   }
 });
 
-// WhatsApp ready
 client.on('ready', () => {
   console.log('✅ WhatsApp connected and ready!');
 });
 
-// When receiving a message, forward to n8n webhook
+// Forward incoming WhatsApp messages to n8n webhook
 client.on('message', async msg => {
   const phone = msg.from;
   const text = msg.body;
+
+  console.log(`[${phone}] → ${text}`);
 
   try {
     const response = await axios.post(process.env.N8N_WEBHOOK, {
@@ -80,6 +80,7 @@ client.on('message', async msg => {
     });
 
     if (response.data?.reply) {
+      console.log(`[GPT] ← ${response.data.reply}`);
       await client.sendMessage(phone, response.data.reply);
     }
   } catch (err) {
