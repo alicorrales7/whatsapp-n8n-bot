@@ -1,4 +1,16 @@
 node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
 .env
-.session
+.env.local
+.env.example
 .wwebjs_auth
+.wwebjs_cache
+session
+.vscode
+.idea
+*.log
+coverage
+.nyc_output
