@@ -58,5 +58,8 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:3000/health || exit 1
 
+# Verifica que Chromium está instalado y muestra su versión
+RUN which chromium && chromium --version || (echo 'Chromium no está instalado correctamente' && exit 1)
+
 # Ejecuta la app
 CMD ["npm", "start"]

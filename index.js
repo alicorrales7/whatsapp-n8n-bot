@@ -60,9 +60,10 @@ logger.info('✅ Webhook apuntando a:', process.env.N8N_WEBHOOK);
 // Configuración de Chromium para Railway
 const chromiumPaths = [
   '/usr/bin/chromium',
-  '/usr/bin/chromium-browser', 
+  '/usr/bin/chromium-browser',
   '/usr/bin/google-chrome',
-  '/usr/bin/google-chrome-stable'
+  '/usr/bin/google-chrome-stable',
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' // MacOS
 ];
 
 let browserPath = chromiumPaths.find(p => fs.existsSync(p));
