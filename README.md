@@ -1,17 +1,24 @@
-# WhatsApp Bot con n8n + ChatGPT
+# whatsapp-clean
 
-Este proyecto conecta un número de WhatsApp con un webhook en n8n para que cualquier mensaje recibido sea respondido por un agente de IA (ChatGPT).
+Bot de WhatsApp que conecta con n8n y OpenAI.
 
-## Requisitos
+## Uso
 
-- Node.js
-- Número de WhatsApp real
-- Webhook funcional en n8n
-- Cuenta de OpenAI conectada a n8n
+1. Copia `.env.example` a `.env` y configura tus variables.
+2. Instala dependencias: `npm install`
+3. Ejecuta: `npm start`
+4. Accede a `/qr` para vincular WhatsApp.
 
-## Uso local
+## Docker
 
-```bash
-npm install
-node index.js
+```sh
+docker build -t whatsapp-clean .
+docker run --env-file .env -p 3000:3000 whatsapp-clean
+```
+
+```
+
+---
+
+¿Quieres que te explique alguna parte en detalle, o necesitas que adapte la estructura a algún requerimiento especial?
 ```

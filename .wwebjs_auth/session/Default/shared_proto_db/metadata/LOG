@@ -1,2 +1,3 @@
-2025/07/01-23:39:16.628 5445f6 Creating DB /Users/alic/Desktop/InProgress/whatsapp-clean/.wwebjs_auth/session/Default/shared_proto_db/metadata since it was missing.
-2025/07/01-23:39:16.632 5445f6 Reusing MANIFEST /Users/alic/Desktop/InProgress/whatsapp-clean/.wwebjs_auth/session/Default/shared_proto_db/metadata/MANIFEST-000001
+2025/07/06-20:46:19.186 5ddbb Reusing MANIFEST /Users/alic/Desktop/InProgress/whatsapp-clean/.wwebjs_auth/session/Default/shared_proto_db/metadata/MANIFEST-000001
+2025/07/06-20:46:19.187 5ddbb Recovering log #3
+2025/07/06-20:46:19.187 5ddbb Reusing old log /Users/alic/Desktop/InProgress/whatsapp-clean/.wwebjs_auth/session/Default/shared_proto_db/metadata/000003.log 
